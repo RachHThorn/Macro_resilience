@@ -24,7 +24,8 @@ none_taxa <- c("Fungi", "Other_litter", "Other_standing_water", "Ground", "Bryop
                "Other_soil_biocrust", "Other_standing_dead")
 
 # read in master raw data file and tidy taxon entries
-drag <- read.csv("data/full-cover-2025-07-16.csv") %>%
+drag <- 
+  read.csv("data/full-cover-2025-07-16.csv") %>%
   mutate(New_taxon = str_to_sentence(Taxon)) %>%
   mutate(New_taxon = str_replace_all(New_taxon, " ", "_")) %>%
   filter(!str_detect(New_taxon, ".sp")) %>% # get rid of entries not to taxon level
@@ -35,17 +36,26 @@ drag <- read.csv("data/full-cover-2025-07-16.csv") %>%
                                New_taxon == "Mimosa_quadrivalvis_var._Platycarpa" ~ "Mimosa_quadrivalvis",
                                New_taxon == "Sebaea_sedoides_var._Schoenlandii" ~ "Sebaea_sedoides", 
                                TRUE ~ New_taxon)) %>%
-  arrange(New_taxon)
+  arrange(New_taxon) %>%
+  mutate(year_trt = case_when(year_trt == -1 ~ "-T1",
+                              year_trt == 0 ~ "T0",
+                              year_trt == 1 ~ "T1",
+                              year_trt == 2 ~ "T2",
+                              year_trt == 3 ~ "T3",
+                              year_trt == 4 ~ "T4",
+                              year_trt == 5 ~ "T5",
+                              year_trt == 6 ~ "T6"))
+         
 
 ################################################################################
 
 # file path to the df of sites and sampling years produced in S1
 wanted_file_path <- "results/dragnet_blocks_surveyed.csv"
 
-# funciton that processes the dagnet data filters it for sites needed for each 
+# function that processes the dagnet data filters it for sites needed for each 
 # time frame we are interested in and preps the data for modelling
+
 process_dragnet <- function(drag, wanted_file_path, years) {
-  
   # Load site list
   wanted <- read_csv(wanted_file_path) %>%
     dplyr::select(2, 4:9) %>%
@@ -55,7 +65,8 @@ process_dragnet <- function(drag, wanted_file_path, years) {
 
   # Filter data
   dat <- drag %>%
-    filter(site_name %in% wanted, year_trt %in% years) %>%
+    dplyr::filter(site_name %in% wanted) %>%
+    dplyr::filter(year_trt %in% years) %>%
     select(site_name, New_taxon, block, trt, year_trt, max_cover) %>%
     group_by(site_name) %>%
     complete(New_taxon, year_trt, trt, block) %>%
@@ -83,7 +94,7 @@ process_dragnet <- function(drag, wanted_file_path, years) {
 species <- 
   read_csv("results/common_species_drag_comp.csv") %>%
   pull(x)
-length(species) # 84 species that ovelap
+length(species) # 84 species that overlap
 
 
 ################################################################################
@@ -107,7 +118,6 @@ write_csv(dat_2, "results/DRAGNet_T0_T2_all.csv")
 # Filter for COMPADRE overlap and save
 dat_2_overlap <- dat_2 %>% filter(New_taxon %in% species)
 write_csv(dat_2_overlap, "results/DRAGNet_T0_T2_overlap.csv")
-
 
 # T0 and T3
 dat_3 <- process_dragnet(drag, wanted_file_path,
