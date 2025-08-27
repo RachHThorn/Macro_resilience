@@ -13,7 +13,7 @@
 # T0-T1 
 
 # read in all DRAGNet clean data
-T1 <- read_csv("results/July_2025/DRAGNet_all_clean_data_with_zeros_T0_T1.csv")
+T1 <- read_csv("results/DRAGNet_T0_T1_all.csv")
 names(T1)
 unique(T1$trt)
 
@@ -58,7 +58,7 @@ Quadrat_T1_DIST <-
   mutate(trt = "DIST") %>%
   rename(BACI = BACI_dist)
 
-n_distinct(Quadrat_T1_DIST$Taxon) # 716
+n_distinct(Quadrat_T1_DIST$Taxon) # 987
 
 # the simple BACIs are row wise calculations so we need to convert the data
 wanted <- c("Control", "NPK")
@@ -147,7 +147,7 @@ Quadrat_T1_INTER <-
 n_distinct(Quadrat_T1_INTER$Taxon) # 711
 
 T1_result <- rbind(Quadrat_T1_DIST, Quadrat_T1_NPK, Quadrat_T1_INTER)
-write_csv(T1_result, "results/July_2025/BACI_T1_results.csv")
+write_csv(T1_result, "results/BACI_T1_results.csv")
 
 ################################################################################
 
@@ -288,14 +288,14 @@ Quadrat_T2_INTER <-
 n_distinct(Quadrat_T2_INTER$Taxon) # 622 species
 
 T2_result <- rbind(Quadrat_T2_DIST, Quadrat_T2_NPK, Quadrat_T2_INTER)
-write_csv(T2_result, "results/July_2025/BACI_T2_results.csv")
+write_csv(T2_result, "results/BACI_T2_results.csv")
 
 ################################################################################
 
 # T0-T3
 
 # read in all DRAGNet clean data
-T3 <- read_csv("results/July_2025/DRAGNet_all_clean_data_with_zeros_T0_T3.csv")
+T3 <- read_csv("results/DRAGNet_T0_T3_all.csv")
 
 # the simple BACIs are row wise calculations so we need to convert the data
 wanted <- c("Control", "Disturbance")
@@ -427,12 +427,12 @@ Quadrat_T3_INTER <-
 n_distinct(Quadrat_T3_INTER$Taxon) # 402 species
 
 T3_result <- rbind(Quadrat_T3_DIST, Quadrat_T3_NPK, Quadrat_T3_INTER)
-write_csv(T3_result, "results/July_2025/BACI_T3_results.csv")
+write_csv(T3_result, "results/BACI_T3_results.csv")
 
 ################################################################################
 
 
 both <- rbind(T1_result, T2_result, T3_result)
 head(both)
-write_csv(both, "results/July_2025/BACI_responses_simple_quadrat_all_DRAGNet.csv")
+write_csv(both, "results/BACI_responses_simple_quadrat_all_DRAGNet.csv")
  
