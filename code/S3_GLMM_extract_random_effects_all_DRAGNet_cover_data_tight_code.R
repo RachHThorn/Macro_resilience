@@ -3,7 +3,7 @@
 # Project: P1_COMPADRE_DRAGNET
 # Script: S3_GLMM_extract_random_effects_all_DRAG_data (tdier code)
 
-packages <- c("tidyverse", "glmmTMB", "mixedup")
+packages <- c("tidyverse", "glmmTMB", "rstan", "assertthat")
 
 for (p in packages) {
   if (!requireNamespace(p, quietly = TRUE)) {
@@ -12,17 +12,16 @@ for (p in packages) {
   library(p, character.only = TRUE)
 }
 
-library(tidyverse)
-library(glmmTMB)
 # library(mixedup) # this is not available with this version of R
 # the raw code is downloaded from the github repro for the package and inputted using
 # source below
+# requires the packages rstan and assertthat
 
 #-----------------------------------------------------------
 # Functions
 #-----------------------------------------------------------
 
-source("code/")
+source("code/functions/extract_random_coefs_raw.R")
 
 get_RE_taxon <- function(data, experiments) {
   data <- data %>% filter(trt %in% experiments)

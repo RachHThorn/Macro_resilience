@@ -42,7 +42,7 @@ Drag_taxa <- read_csv("data/full-cover-2025-07-16.csv") %>%
 
 length(Drag_taxa) # there are 1301 taxa in the DRAGNet data set
 Drag_taxa # all these names now look ok = all taxa and no subspecies present
-# write.csv(Drag_taxa, "results/July_2025/all_drag_taxa.csv") # export a list of taxa found in DRAGNet 
+write.csv(Drag_taxa, "results/all_drag_taxa.csv") # export a list of taxa found in DRAGNet 
 
 ################################################################################
 
@@ -58,8 +58,8 @@ Com_taxa <- str_replace_all(Com_taxa, " ", "_")
 
 # Find shared taxa between the two data sets
 common <- Com_taxa[Com_taxa %in% Drag_taxa] 
-length(common) # there are 82 shared taxa
-# write.csv(common, "results/July_2025/common_species_drag_comp.csv")
+length(common) # there are 84 shared taxa
+write.csv(common, "results/common_species_drag_comp.csv")
 
 ################################################################################
 
@@ -74,7 +74,7 @@ names(Com_dat)
 Com_dat <- Com_dat %>% as.tibble() %>% select(MatrixID, SpeciesAccepted, Lat, Lon, Country, Continent, DOI_ISBN)
 Com_dat <- Com_dat %>% drop_na(Lat) %>% distinct(Lat, Lon, SpeciesAccepted, .keep_all=TRUE)
 
-write_csv(Com_dat, "results/July_2025/matrix_locations_dragnet.csv")
+write_csv(Com_dat, "results/matrix_locations_dragnet.csv")
 
 ################################################################################
 
@@ -93,7 +93,7 @@ blocks_surveyed <- drag %>%
 
 colnames(blocks_surveyed)
 # output table the number of blocks surveyed in each time point
-write.csv(blocks_surveyed, "results/July_2025/dragnet_blocks_surveyed.csv") 
+write.csv(blocks_surveyed, "results/dragnet_blocks_surveyed.csv") 
 
 # interpretation of col names in the table created
 # blocks represented in -1 - means they have participated in the seed study and is a pre-treatment year
@@ -102,5 +102,3 @@ write.csv(blocks_surveyed, "results/July_2025/dragnet_blocks_surveyed.csv")
 
 ################################################################################
 
-# site codes
-read_csv("results/July_2025/dragnet_blocks_surveyed.csv")
