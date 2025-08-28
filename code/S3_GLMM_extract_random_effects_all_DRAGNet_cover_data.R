@@ -97,9 +97,9 @@ process_time_period <- function(file, time_label) {
 #-----------------------------------------------------------
 
 files <- c(
-  "results/DRAGNet_T0_T1_overlap.csv",
-  "results/DRAGNet_T0_T2_overlap.csv",
-  "results/DRAGNet_T0_T3_overlap.csv")
+  "results/DRAGNet_T0_T1_all.csv",
+  "results/DRAGNet_T0_T2_all.csv",
+  "results/DRAGNet_T0_T3_all.csv")
 
 results <- imap(files, ~ process_time_period(.x, .y))
 
