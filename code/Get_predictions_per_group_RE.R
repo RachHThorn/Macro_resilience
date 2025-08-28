@@ -188,18 +188,66 @@ mods_dist_T1 <- imap_dfr(model_list, ~ create_model_summary(.x) %>%
 
 random_coeffs <- imap_dfr(model_list, ~ extract_random_coefs(.x))
 
+
+# what is the difference between a random coefficient and a random effect here?
 RCo_mod_1 <- extract_random_coefs(betareg_mod_1)
+RCo_mod_1$type <- "coef"
+RCo_mod_1$group
 RCo_mod_2 <- extract_random_coefs(betareg_mod_2)
 RCo_mod_3 <- extract_random_coefs(betareg_mod_3)
 
 RE_mod_1 <- extract_random_effects(betareg_mod_1)
+RE_mod_1$type <- "eff"
+RE_mod_1$group
 RE_mod_2 <- extract_random_effects(betareg_mod_2)
 RE_mod_3 <- extract_random_effects(betareg_mod_3)
 
 fixed_mod_4 <- extract_fixed_effects(betareg_mod_4)
 fixed_mod_4 <- extract_fixed_effects(betareg_mod_4)
 
-extract_vc(betareg_mod_2)
+mod_1_effects <- bind_rows(RCo_mod_1, RE_mod_1)
+
+# use extract_random_effects() when you want to know how individuals deviate from the whole model
+# use extract_random_coeff() when you want to examine the variability in the relationships between
+# predictors and the outcomes across different groups
+
+################################################################################
+
+# visualise these model results
+# are there any differences between using the random coeffs and the random effects???
+names(mod_1_effects)
+mod_1_effects$group
+mod_1_effects %>%
+  ggplot(aes(value, reorder(group, value), colour = type))+
+  theme_classic()+
+  geom_point(size = 1)+
+  geom_errorbar(aes(xmin = value - se, xmax = value + se), size = 0.3)+
+  ylab("Taxon") +
+  xlab("Standardised effects with SE")
+
+# These values are both given on the model scale
+
+# check to see if they are actually different from each other
+RCo_mod_1 <- RCo_mod_1 %>% ungroup() %>% arrange(as.character(group))
+RE_mod_1 <- RE_mod_1 %>% ungroup() %>% arrange(as.character(group))
+
+# perfect positive correlation here - so no difference
+cor.test(RCo_mod_1$value, RE_mod_1$value, method = "kendall")
+
+################################################################################
+
+# from now on lets stick to random coeffs to compare the diff models
+nrow(RCo_mod_1) # 987
+nrow(RCo_mod_2) # 1203 - more taxa???
+
+n_distinct(RCo_mod_2)
+
+# lets look at the difference between the random effetcs taken from the different models
+RCo_mod_2 <- RCo_mod_2 %>% ungroup() %>% arrange(as.character(group))
+cor.test(RCo_mod_1$value, RCo_mod_2$value, method = "kendall")
+
+
+
 
 
 ################################################################################
