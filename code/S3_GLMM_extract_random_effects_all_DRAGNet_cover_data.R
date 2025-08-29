@@ -1,7 +1,25 @@
 # R Thornley
-# 10/02/2025
+# 29/08/2025
 # Project: P1_COMPADRE_DRAGNET
-# Script: S3_GLMM_extract_random_effects_all_DRAG_data (tidier code)
+# Script: S3_GLMM_extract_random_effects_all_DRAG_data
+
+#-----------------------------------------------------------
+# Instructions
+#-----------------------------------------------------------
+
+# Read in the tidy DRAGNet data for each time period we are interested in
+# ie T0-T1, T0-T2, T0-T3
+# Function Get_RE_taxon - runs two types of GLMMs for the each of the treatments
+# in order to get the REs for only the taxon
+# Function Get_RE_taxon_site - runs two types of GLMMs for the each of the treatments
+# in order to get the REs for the taxon within site
+# wrapper function enables these models to be run for each of the different experiments 
+# code is then run for each separate data set for each time period
+# then joined and exported
+
+#-----------------------------------------------------------
+# Packages
+#-----------------------------------------------------------
 
 # install the mixed up package directly from Github
 remotes::install_github('m-clark/mixedup')
@@ -21,17 +39,19 @@ for (p in packages) {
 #-----------------------------------------------------------
 
 get_RE_taxon <- function(data, experiments) {
+  
   data <- data %>% filter(trt %in% experiments)
+  data <- data %>% mutate(site_block_taxon = paste0(site_name, "_", block, "_", New_taxon))
   
   hurdle_mod <- glmmTMB(
-    new_max_cover ~ trt * year_trt + (1|New_taxon),
+    new_max_cover ~ trt * year_trt + (1|New_taxon) + (1|site_block_taxon),
     family = beta_family(link = "logit"),
     ziformula = ~ 1 + trt * year_trt,
     data = data
   )
   
   betareg_mod <- glmmTMB(
-    new_max_cover ~ trt * year_trt + (1|New_taxon),
+    new_max_cover ~ trt * year_trt + (1|New_taxon) + + (1|site_block_taxon),
     family = ordbeta(link = "logit"),
     data = data
   )
@@ -44,17 +64,19 @@ get_RE_taxon <- function(data, experiments) {
 }
 
 get_RE_taxon_site <- function(data, experiments) {
+  
   data <- data %>% filter(trt %in% experiments)
+  data <- data %>% mutate(site_block_taxon = paste0(site_name, "_", block, "_", New_taxon))
   
   hurdle_mod <- glmmTMB(
-    new_max_cover ~ trt * year_trt + (1|taxon_site),
+    new_max_cover ~ trt * year_trt + (1|taxon_site) + (1|site_block_taxon),
     family = beta_family(link = "logit"),
     ziformula = ~ 1 + trt * year_trt,
     data = data
   )
   
   betareg_mod <- glmmTMB(
-    new_max_cover ~ trt * year_trt + (1|taxon_site),
+    new_max_cover ~ trt * year_trt + (1|taxon_site) + (1|site_block_taxon),
     family = ordbeta(link = "logit"),
     data = data
   )
@@ -67,7 +89,7 @@ get_RE_taxon_site <- function(data, experiments) {
 }
 
 #-----------------------------------------------------------
-# Wrapper to process each time period
+# Wrapper to process each experiment (treatment)
 #-----------------------------------------------------------
 
 process_time_period <- function(file, time_label) {
