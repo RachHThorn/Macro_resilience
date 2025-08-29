@@ -31,8 +31,7 @@ n_distinct(BACI_quadrat$Taxon) # there are also 1224 unique species in this data
 
 ################################################################################
 
-# calculate the mean per taxa and the associated 
-
+# calculate the mean per taxa and the associated SE
 BACI_all <- BACI_quadrat %>%
   group_by(trt, time, Taxon) %>%
   summarise(

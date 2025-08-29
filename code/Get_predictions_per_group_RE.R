@@ -40,7 +40,7 @@ betareg_mod_1 <- glmmTMB(
   family = ordbeta(link = "logit"),
   data = data)
 
-# model 2: addition of site_block as the RE
+# model 2: addition of site_block as the RE alongside the taxon
 betareg_mod_2 <- glmmTMB(
   new_max_cover ~ trt * year_trt + (1|New_taxon) + (1|site_block),
   family = ordbeta(link = "logit"),
@@ -52,13 +52,13 @@ betareg_mod_3 <- glmmTMB(
   family = ordbeta(link = "logit"),
   data = data)
 
-# model 4: specification of taxa as a fixed effect (wiht the repeat measures random effect)
+# model 4: specification of taxa as a fixed effect (with the repeat measures random effect)
 betareg_mod_4 <- glmmTMB(
   new_max_cover ~ trt * year_trt + New_taxon + (1|site_block_taxon),
   family = ordbeta(link = "logit"),
   data = data)
 
-# model 4: specification of taxa as a fixed effect (wiht the repeat measures random effect)
+# model 5: specification of taxa as a fixed effect (with the site_block random effect)
 betareg_mod_5 <- glmmTMB(
   new_max_cover ~ trt * year_trt + New_taxon + (1|site_block),
   family = ordbeta(link = "logit"),
@@ -79,65 +79,8 @@ VarCorr(betareg_mod_5) # here taxa is fixed - site block captures very little of
 
 ################################################################################
 
-summary(betareg_mod_4)
-summary(betareg_mod_5)
-
-################################################################################
-
-create_model_summary <- function(model){
-  d1 <- r2_nakagawa(model)
-  d1a <- (d1[[1]])
-  d1b <- (d1[[2]])
-  d2 <-icc(model)
-  d3 <- get_variance_residual(model)
-  d4 <- get_variance_fixed(model)
-  d5 <- get_variance_random(model)
-  dat <- c(d1a, d1b, d2, d3, d4, d5)
-  dat <- as.data.frame(dat)
-  dat$var_total <- dat$var.residual + dat$var.fixed + dat$var.random
-  dat$prop_fixed <- dat$var.fixed/dat$var_total *100
-  dat$prop_random <- dat$var.random/dat$var_total *100
-  dat$prop_residual <- dat$var.residual/dat$var_total*100
-  return(dat)
-}
-
-mod_1 <- betareg_mod_1 %>%
-  create_model_summary() %>%
-  mutate(mod_nos = "mod_1") %>%
-  mutate(random = "taxa") %>% 
-  mutate(experiment = "DIST") %>%
-  mutate(model = "Ordbeta")
-
-mod_2 <- betareg_mod_2 %>%
-  create_model_summary() %>%
-  mutate(mod_nos = "mod_2") %>%
-  mutate(random = "taxa") %>% 
-  mutate(experiment = "DIST") %>%
-  mutate(model = "Ordbeta")
-
-mod_3 <- betareg_mod_3 %>%
-  create_model_summary() %>%
-  mutate(mod_nos = "mod_3") %>%
-  mutate(random = "taxa") %>% 
-  mutate(experiment = "DIST") %>%
-  mutate(model = "Ordbeta")
-
-mod_4 <- betareg_mod_4 %>%
-  create_model_summary() %>%
-  mutate(mod_nos = "mod_4") %>%
-  mutate(random = "taxa") %>% 
-  mutate(experiment = "DIST") %>%
-  mutate(model = "Ordbeta")
-
-mod_5 <- betareg_mod_5 %>%
-  create_model_summary() %>%
-  mutate(mod_nos = "mod_5") %>%
-  mutate(random = "taxa") %>% 
-  mutate(experiment = "DIST") %>%
-  mutate(model = "Ordbeta")
-
-mods <- bind_rows(mod_1, mod_2, mod_3, mod_4, mod_5)
-
+mod_4_summary <- summary(betareg_mod_4)
+mod_5_summary <- summary(betareg_mod_5)
 
 ################################################################################
 
@@ -202,10 +145,19 @@ RE_mod_1$group
 RE_mod_2 <- extract_random_effects(betareg_mod_2)
 RE_mod_3 <- extract_random_effects(betareg_mod_3)
 
-fixed_mod_4 <- extract_fixed_effects(betareg_mod_4)
-fixed_mod_4 <- extract_fixed_effects(betareg_mod_4)
 
-mod_1_effects <- bind_rows(RCo_mod_1, RE_mod_1)
+# from models 4 and 5 we wnaat to extract the fixed effects only
+fixed_mod_4 <- extract_fixed_effects(betareg_mod_4)
+fixed_mod_4 <- 
+  fixed_mod_4 %>% 
+  filter(str_detect(term, "New_taxon")) %>%
+  mutate(new_term = str_remove(term, "New_taxon"))
+
+fixed_mod_5 <- extract_fixed_effects(betareg_mod_5)
+fixed_mod_5 <- 
+  fixed_mod_5 %>% 
+  filter(str_detect(term, "New_taxon")) %>%
+  mutate(new_term = str_remove(term, "New_taxon"))
 
 # use extract_random_effects() when you want to know how individuals deviate from the whole model
 # use extract_random_coeff() when you want to examine the variability in the relationships between
@@ -215,6 +167,8 @@ mod_1_effects <- bind_rows(RCo_mod_1, RE_mod_1)
 
 # visualise these model results
 # are there any differences between using the random coeffs and the random effects???
+# we can bind the two types of effects and see if they are any different from each other
+mod_1_effects <- bind_rows(RCo_mod_1, RE_mod_1)
 names(mod_1_effects)
 mod_1_effects$group
 mod_1_effects %>%
@@ -238,24 +192,119 @@ cor.test(RCo_mod_1$value, RE_mod_1$value, method = "kendall")
 
 # from now on lets stick to random coeffs to compare the diff models
 nrow(RCo_mod_1) # 987
-nrow(RCo_mod_2) # 1203 - more taxa???
+nrow(RCo_mod_2) # 1203 - more rows than we need - 
+# the effects for the other grouping variable are also included in this table
 
-n_distinct(RCo_mod_2)
+# filter the larger data frame so both only have the taxa effects listed
+names(RCo_mod_2)
+RCo_mod_2 <- RCo_mod_2 %>% filter(group_var == "New_taxon")
 
-# lets look at the difference between the random effetcs taken from the different models
+# lets look at the difference between the random effects taken from the different models
 RCo_mod_2 <- RCo_mod_2 %>% ungroup() %>% arrange(as.character(group))
-cor.test(RCo_mod_1$value, RCo_mod_2$value, method = "kendall")
-
-
-
-
+cor.test(RCo_mod_1$value, RCo_mod_2_small$value, method = "kendall")
+# a very strong positive correlation - there is not much difference between the effects
 
 ################################################################################
 
+nrow(RCo_mod_3) 
+RCo_mod_3 <- RCo_mod_3 %>% filter(group_var == "New_taxon")
+RCo_mod_3 <- RCo_mod_3 %>% ungroup() %>% arrange(as.character(group))
+cor.test(RCo_mod_2$value, RCo_mod_3$value, method = "kendall")
+cor.test(RCo_mod_1$value, RCo_mod_3$value, method = "kendall")
+
+plot(RCo_mod_2$value, RCo_mod_3$value)
+plot(RCo_mod_1$value, RCo_mod_2$value)
+plot(RCo_mod_1$value, RCo_mod_3$value)
+
+################################################################################
+
+# lets compare the random effects from these models to the BACI simple response
+simple_BACI <- read_csv("results/BACI_T0_T1_results.csv") %>% 
+  filter(trt == "DIST", time == "T0-T1")
+simple_BACI
+
+BACI_all <- simple_BACI %>%
+  group_by(trt, time, Taxon) %>%
+  summarise(
+    mean = mean(BACI, na.rm = TRUE),
+    se = sd(BACI, na.rm = TRUE) / sqrt(n()),
+    .groups = "drop"
+  ) 
+
+n_distinct(BACI_all$Taxon) # 987 taxa that we have estimates for
+BACI_all <- BACI_all %>% ungroup() %>% arrange(as.character(Taxon))
+names(BACI_all)
+
+# compare mods 1-3 wiht BACI response
+cor.test(RCo_mod_1$value, BACI_all$mean, method = "kendall")
+plot(RCo_mod_1$value, BACI_all$mean)
+
+cor.test(RCo_mod_2$value, BACI_all$mean, method = "kendall")
+plot(RCo_mod_2$value, BACI_all$mean)
+
+cor.test(RCo_mod_3$value, BACI_all$mean, method = "kendall")
+plot(RCo_mod_3$value, BACI_all$mean)
+
+################################################################################
+
+# lets look at the other models where the fixed effect is taxon
+
+fixed_mod_4 <- 
+  fixed_mod_4 %>% 
+  ungroup() %>% 
+  arrange(as.character(new_term))
+
+fixed_mod_5 <- 
+  fixed_mod_5 %>% 
+  ungroup() %>% 
+  arrange(as.character(new_term))
+
+# so the correlation between the two fixed effects modes are very similar
+cor.test(fixed_mod_4$value, fixed_mod_5$value, method = "kendall")
+plot(fixed_mod_4$value, fixed_mod_5$value)
+
+
+# lets look at the correlation between effects from the RE models (1-3) and the fixed effects (4-5)
+n_distinct(RCo_mod_1$group) # 987
+n_distinct(fixed_mod_4$new_term) # 986
+
+# difference between the vectors
+setdiff(RCo_mod_1$group, fixed_mod_4$new_term)
+# fixed mod 4 contains the taxon "Abutilon_fruticosum"
+RCo_mod_1 <- RCo_mod_1 %>% filter(!group == "Abutilon_fruticosum")
+
+# now test for the correlation
+cor.test(fixed_mod_4$value, RCo_mod_1$value, method = "kendall")
+plot(fixed_mod_4$value, RCo_mod_1$value)
+
+# how about the correlation between the BACI and the fixed model
+n_distinct(BACI_all$Taxon) # 987
+n_distinct(fixed_mod_4$new_term) # 986
+
+# difference between the vectors
+setdiff(BACI_all$Taxon, fixed_mod_4$new_term)
+# fixed mod 4 contains the taxon "Abutilon_fruticosum"
+BACI_all <- BACI_all %>% filter(!Taxon == "Abutilon_fruticosum")
+cor.test(fixed_mod_4$value, BACI_all$mean, method = "kendall")
+plot(fixed_mod_4$value, BACI_all$mean)
+
+################################################################################
+
+# see if the interaction term is significant in the fixed effetc model
+fixed_mod_4 <- extract_fixed_effects(betareg_mod_4)
+fixed_results <- fixed_mod_4 %>% filter(!str_detect(term, "New_taxon"))
+fixed_results
+
+fixed_mod_5 <- extract_fixed_effects(betareg_mod_5)
+fixed_results <- fixed_mod_5 %>% filter(!str_detect(term, "New_taxon"))
+fixed_results
+
+################################################################################
+
+# compare the performance of the 5 models
 perf_mods <- compare_performance(betareg_mod_1, betareg_mod_2, betareg_mod_3, betareg_mod_4, betareg_mod_5)
 
-
-see
+################################################################################
 
 # we need to extract these taxon level effects for each of the models and 
 
@@ -282,62 +331,9 @@ plot_3
 
 
 
-
-
-
-library(marginaleffects)
-avg_slopes(betareg_mod_3)
-
-
-
-
-data$predicted <- predict(betareg_mod)
-
-# Calculate mean x per group
-group_means <- data %>%
-  group_by(New_taxon, trt, year_trt) %>%
-  summarise(new_max_cover = mean(new_max_cover), .groups = "drop")
-group_means$predicted <- predict(betareg_mod, newdata = group_means, re.form = NULL)
-
-
-
-
-# random effect deviations from the population mean
-# the use these to preditc for each level of the REs
-fixef(betareg_mod)["(Intercept)"] + ranef(betareg_mod)$New_taxon
-
-
 ################################################################################
 
-# Load and filter
-data <- read_csv("results/DRAGNet_T0_T1_all.csv")
-experiments <- c("Control", "Disturbance")
-data <- data %>% filter(trt %in% experiments)
-
-# Fit model
-betareg_mod <- glmmTMB(
-  new_max_cover ~ trt * year_trt + (1 | New_taxon),
-  family = ordbeta(link = "logit"),
-  data = data
-)
-
-# check if the random intercepts vary between models
-VarCorr(betareg_mod)
-summary(betareg_mod)
-
-re <- ranef(betareg_mod)[["New_taxon"]][["(Intercept)"]]
-head(re)
-
-
-library(modelsummary)
-modelsummary(betareg_mod)
-get_estimates(betareg_mod)
-
-ranef(betareg_mod)$New_taxon[["(Intercept)"]]
-re <- ranef(betareg_mod)[["New_taxon"]][["(Intercept)"]]
-head(re)
-
-
+# try to predict from the models onto the scale of the response
 
 # Fixed intercept
 fixed_int <- fixef(betareg_mod)$cond["(Intercept)"]
@@ -359,18 +355,8 @@ coef(betareg_mod) # actual intercepts per
 taxon_intercepts <- fixed_int + re
 taxon_intercepts
 
-
 # Predict for all levels (using a data frame with all levels)
 # predictions_all_levels <- predict(mod, newdata = all_possible_newdata, re.form = NULL, type = "response")
-                                                                       rdrr.io
-                                                                                             How to calculate predicted values using glmmTMB?
-                                                                                               13 Jul 2023
-                                                                                             
-                                                                                             Stack Overflow
-                                                                                             
-                                                                                             
-
-
 # Predictions for each observation (fixed + random effects)
 data$predicted <- predict(betareg_mod)
 
