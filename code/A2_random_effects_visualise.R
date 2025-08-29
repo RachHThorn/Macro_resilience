@@ -6,43 +6,50 @@
 
 library(tidyverse)
 library(ggpubr)
+library(ggrepel)
 
 ################################################################################
 
 # read in effect sizes from the whole of DRAGNet to contextualise the effects from
-all <- read_csv("results/July_2025/RE_SE_Taxon_all_DRAGNet.csv")
-unique(all$model)
-n_distinct(all$group) # 1086 species 
+taxa <- read_csv("results/RE_SE_Taxon_all_DRAGNet.csv")
 
 # read in the taxon RE from the compadre and dragnet overlap
-taxon <- read_csv("results/July_2025/RE_SE_Taxon_overlap_DRAGNet.csv")
-head(taxon)
-# get a df of the taxa only
-overlap_species <- 
-  taxon %>% select(group) %>% 
-  arrange(group) %>% unique()
-overlap_species <- overlap_species %>% mutate(id = rownames(overlap_species))
+comp_taxa <- read_csv("results/common_species_drag_comp.csv") %>% pull(x)
 
-# code a column for the overlap species
-all <- all %>% left_join(overlap_species) %>%
-  mutate(id = case_when(is.na(id) ~ "0",
-                        TRUE ~ "1"))
+# select the random effects for the var of interest only (New_taxon)
+# create a new ID variable
+# change some labels in the data frame to tidy it up
+taxa <- 
+  taxa %>% 
+  filter(str_detect(group_var, "New_taxon")) %>%
+  mutate(ID = if_else(group %in% comp_taxa, "1", "0")) %>%
+  mutate(ID = factor(ID, levels = c("0", "1"))) %>%
+  mutate(time_period = case_when(time_period == 1 ~ "T0-T1",
+                                        time_period == 2 ~ "T0-T2",
+                                        time_period == 3 ~ "T0-T3")) %>%
+  dplyr::select(group, value, se, model, time_period, experiment, ID) %>%
+  rename(taxon = group) %>%
+  mutate(label = if_else(ID == "1", taxon, NA_character_))
 
 ################################################################################
 
 # make sure the labels for the experiments are ordered correctly
-unique(all$experiment)
 custom_labels = c(DIST = "Disturbance", NPK = "NPK", INTER = "Interaction")
 
-
 plot <- 
-  all %>% filter(model == "Ordbeta") %>%
+  taxa %>% filter(model == "Ordbeta") %>%
   filter(time_period == "T0-T1") %>%
   mutate(experiment = factor(experiment, levels = c("DIST", "NPK", "INTER"))) %>%
-  ggplot(aes(value, reorder(group, value)))+
+  ggplot(aes(value, reorder(taxon, value)))+
   theme_classic()+
   geom_point(size = 1)+
-  geom_errorbar(aes(xmin = value - se, xmax = value + se, colour = id), size = 0.3)+
+  geom_errorbar(aes(xmin = value - se, xmax = value + se, colour = ID), size = 0.3)+
+  geom_text_repel(
+    aes(label = label), size = 3, 
+    nudge_x = -0.1,
+    direction = "y",
+    hjust = 1,
+    na.rm = TRUE) +  # labels only where ID==1
   ylab("Taxon") +
   xlab("Standardised effects with SE")+
   facet_wrap(~experiment, scales = "free_y", labeller = labeller(experiment = custom_labels))+
@@ -54,4 +61,37 @@ plot
 
 #############################################################################
 
-ggsave("figures/Dragnet_draft_July/A2_Caterpillar_context_plots.jpeg", plot, height = 4, width = 7)
+# put the labels on the y axis instead
+# this is not perfect - trying to get the y axis non overlapping
+taxa_labels <- taxa %>% filter(model == "Ordbeta", time_period == "T0-T1", ID == "1")
+
+plot <- 
+  taxa %>% 
+  filter(model == "Ordbeta") %>%
+  filter(time_period == "T0-T1") %>%
+  mutate(experiment = factor(experiment, levels = c("DIST", "NPK", "INTER"))) %>%
+  ggplot(aes(x = value, y = reorder(taxon, value), colour = ID)) +
+  theme_classic() +
+  geom_point(aes(colour = ID), size = 0.3) +
+  geom_errorbar(aes(xmin = value - se, xmax = value + se, colour = ID), size = 0.3) +
+  # Only show y-axis labels for taxa with label == 1
+  scale_y_discrete(breaks = taxa_labels$taxon) +
+  ylab("Taxon") +
+  xlab("Standardised effects with SE") +
+  facet_wrap(~experiment, scales = "free_y", labeller = labeller(experiment = custom_labels)) +
+  geom_vline(xintercept = 0, colour = "red", linetype = "dashed") +
+  scale_colour_manual(values = c("grey", "red"), labels = c("all DRAGNet", "COMPADRE overlap")) +
+  theme(legend.title = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "top",
+        axis.text.y = element_text(colour = "red", size = 5.5))
+  
+plot
+ggsave("figures/A2_caterpillar_context_plots.jpeg", height = 8, width = 12)
+
+###############################################################################
+
+
+
+
+
