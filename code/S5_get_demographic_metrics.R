@@ -51,8 +51,8 @@ Drag_taxa_new <- str_replace_all(Drag_taxa, "_", " ") # replace underscore with 
 Drag_taxa_new
 # now we can filter the COMPADRE data for the DRAGNet species
 shared_data_more <- cdb_check_species(Com_clean, Drag_taxa_new, return_db = TRUE)
-unique(shared_data_more$SpeciesAccepted) # 36 species
-dim(shared_data_more) # 334 matrices 
+unique(shared_data_more$SpeciesAccepted) # 73 species
+dim(shared_data_more) # 371 matrices 
 
 ################################################################################
 
@@ -165,17 +165,20 @@ for (i in 1:long){
 }
 
 output
+
 # we can now filter these matrices for the species in DRAGNet
 names(output)
 output %>% group_by(SpeciesAccepted) %>% tally() # we have metrics for 452 species
 nos_matrix <- output %>% filter(DRAGNet == TRUE) %>% group_by(SpeciesAccepted) %>% tally()
-nos_matrix %>% filter(n > 1) # we have 22 species for which we have more than one matrix
+nos_matrix # we have 41 species
+nos_matrix %>% filter(n > 1) # we have 25 species for which we have more than one matrix
 
 # some of the metrics are not reasonable values though
 # just tidy this up a bit
 # we need to change any inf values to NA
 # dat <- output %>% mutate(across(29:37, ~na_if(abs(.), Inf)))
 names(output)
+
 # we need to get rid of ridiculous data here and put NA values instead
 check <-
   output %>% 
@@ -190,12 +193,10 @@ check <-
   mutate(value = case_when(demo_var == "Lambda" & value > 2 ~ NA, TRUE ~ value)) %>%
   mutate(value = case_when(demo_var == "Reactivity" & value > 5000 ~ NA, TRUE ~ value)) %>%
   mutate(value = case_when(demo_var == "FirstStepAtt" & value > 5000 ~ NA, TRUE ~ value)) %>%
-  mutate(value = case_when(demo_var == "L_max" & value < 80 ~ NA, TRUE ~ value)) 
-names(check)
-
+  mutate(value = case_when(demo_var == "L_max" & value < 80 ~ NA, TRUE ~ value))
 
 # save the compadre metrics
-write_csv(check, "results/July_2025/all_COMPADRE_metrics.csv")
+write_csv(check, "results/all_COMPADRE_metrics.csv")
 
 ################################################################################
 
