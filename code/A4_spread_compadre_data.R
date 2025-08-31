@@ -24,15 +24,15 @@ demo$Taxon_label
 demo$Demo_value_log
 # list the demography traits we are dealng with
 print(unique(demo$Demo_trait))
-# "T_generation"    
-# "R0"              
-# "percapita_repro" 
-# "Lmean"           
-# "age_repro"       
-# "Lambda"         
-# "Reactivity"      
-# "FirstStepAtt"    
-# "Lmax"  
+# 1) "T_generation"    
+# 2) "R0"              
+# 3) "percapita_repro" 
+# 4) "Lmean"           
+# 5) "age_repro"       
+# 6) "Lambda"         
+# 7) "Reactivity"      
+# 8) "FirstStepAtt"    
+# 9) "Lmax"  
 
 ################################################################################
 
@@ -97,16 +97,17 @@ p4
 # ggsave("figures/Mean_life_expectancy_boxplot.jpeg", p4, height = 5, width = 6)
 
 # "age_repro"
+demo$Demo_trait
 p5 <-  
   demo %>%
-  filter(Demo_trait == "R0") %>%
+  filter(Demo_trait == "age_repro") %>%
   drop_na(Demo_value) %>%
   ggplot(aes(reorder(Taxon_label, Demo_value_mean), Demo_value))+
   geom_boxplot()+
   theme_classic()+
   theme(axis.text.x = element_text(angle = 90, hjust = 1),
         axis.title.x = element_blank()) +
-  ylab("Reproductive output")
+  ylab("Age at first reproduction")
 p5
 # ggsave("figures/Reproductive_output_boxplot.jpeg", p5, height = 5, width = 6)
 
@@ -222,7 +223,7 @@ p4_again <-
   theme(axis.text.x = element_text(angle = 90, hjust = 1),
         axis.title.x = element_blank()) +
   ylab("Mean Life Expectancy (log)")
-p4
+p4_again
 
 # "Reactivity"    
 p7_again <- 
@@ -251,6 +252,25 @@ p9_again <-
 p9_again
 
 ################################################################################
+
+
+combined <- ggarrange(p1, p2_again, p3_again, p4_again, 
+                      p5, p6, p7_again, p8, p9_again,
+                      ncol = 3, nrow = 3,
+                      common.legend = FALSE)
+
+combined <- annotate_figure(
+  combined,
+  bottom = text_grob("Taxon", color = "black", face = "bold", size = 14),
+  left = text_grob("Demographic Metric", color = "black", face = "bold", size = 14, rot = 90)
+)
+combined
+ggsave("figures/all_demo_metrics_some_logged_boxplots.jpeg", combined, height = 18, width = 12)
+
+
+################################################################################
+
+
 
 
 demo %>%
