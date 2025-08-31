@@ -1,6 +1,6 @@
 # R Thornley
 # 30/08/2025
-# Regressions for the mean Life History Traits and mean RE outcomes
+# Visualisation of the demographic metrics
 
 library(tidyverse)
 library(ggpubr)
@@ -19,9 +19,7 @@ demo <- read_csv("results/all_COMPADRE_metrics.csv") %>%
   mutate(Taxon_label = str_replace_all(Taxon, "_", " ")) %>%
   mutate(Taxon_label = paste0(Taxon_label, " n = ", Sample_size)) %>%
   mutate(Demo_value_log = log(Demo_value))
-names(demo)
-demo$Taxon_label
-demo$Demo_value_log
+
 # list the demography traits we are dealng with
 print(unique(demo$Demo_trait))
 # 1) "T_generation"    
@@ -253,7 +251,7 @@ p9_again
 
 ################################################################################
 
-
+# NOTE (may need to re-order and rename these)
 combined <- ggarrange(p1, p2_again, p3_again, p4_again, 
                       p5, p6, p7_again, p8, p9_again,
                       ncol = 3, nrow = 3,
@@ -269,25 +267,5 @@ ggsave("figures/all_demo_metrics_some_logged_boxplots.jpeg", combined, height = 
 
 
 ################################################################################
-
-
-
-
-demo %>%
-  filter(Demo_trait == "age_repro") %>%
-  ggplot(aes(Demo_value, reorder(Taxon, Demo_value)))+
-  theme_classic()+
-  geom_point(size = 1)+
-  geom_errorbar(aes(xmin = Demo_value - se, xmax = Demo_value + se), size = 0.3)+
-  facet_wrap(~ Demo_trait, scales = "free_x")
-
-
-demo %>%
-  ggplot(aes(Demo_value, reorder(Taxon, Demo_value)))+
-  theme_classic()+
-  geom_point(size = 1)+
-  geom_errorbar(aes(xmin = Demo_value - se, xmax = Demo_value + se), size = 0.3)+
-  facet_wrap(~ Demo_trait, scales = "free_x")+
-  xlab("Years")
 
 

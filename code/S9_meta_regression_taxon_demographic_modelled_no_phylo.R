@@ -6,14 +6,14 @@
 library(tidyverse)
 library(meta)
 library(metafor)
-library(orchaRd)
+library(orchaRd) # this package is not on CRAN
 
 ################################################################################
 
 # join the effect sizes 
 
 # Load demography variables
-demo <- read_csv("results/July_2025/all_COMPADRE_metrics.csv") %>% 
+demo <- read_csv("results/all_COMPADRE_metrics.csv") %>% 
   filter(DRAGNet == TRUE) %>% 
   rename("Taxon" = "SpeciesAccepted", "Demo_trait" = "demo_var", "Demo_value" = "value") %>%
   mutate(Taxon = str_replace_all(Taxon, " ", "_")) %>%
@@ -23,10 +23,10 @@ demo <- read_csv("results/July_2025/all_COMPADRE_metrics.csv") %>%
   drop_na(Demo_value)
 
 # read in the shared list of species found in both compadre and dragnet
-Drag_taxa <- read_csv("results/July_2025/common_species_drag_comp.csv")
+Drag_taxa <- read_csv("results/common_species_drag_comp.csv")
 Drag_taxa <- Drag_taxa %>% pull(x)
 # Load the REs from the first round of modelling / tidy names / filter for the dragnet taxa
-effects <- read_csv("results/July_2025/RE_SE_Taxon_all_DRAGNet.csv") %>%
+effects <- read_csv("results/RE_SE_Taxon_all_DRAGNet.csv") %>%
   dplyr::rename("Taxon" = "group") %>%
   filter(Taxon %in% Drag_taxa)
 
@@ -97,7 +97,7 @@ tidy_df_modelled <- result_modelled %>%
 
 # effect size plus CI for each demo var
 # Hurdle conditional model
-tidy_df %>% 
+tidy_df_modelled %>% 
   dplyr::filter(model == "Hurdle_cond") %>%
   ggplot(aes(estimate, Demo_trait))+
   theme_bw()+
@@ -108,7 +108,7 @@ tidy_df %>%
   ggtitle("Hurdle conditional model meta regression results")
 
 # Hurdle zero-inflated
-tidy_df %>% 
+tidy_df_modelled %>% 
   dplyr::filter(model == "Hurdle_zi") %>%
   ggplot(aes(estimate, Demo_trait))+
   theme_bw()+
@@ -118,7 +118,7 @@ tidy_df %>%
   facet_grid(time_period ~ experiment)+
   ggtitle("Hurdle zi model meta regression results")
 
-tidy_df %>% 
+tidy_df_modelled %>% 
   dplyr::filter(model == "Ordbeta") %>%
   ggplot(aes(estimate, Demo_trait))+
   theme_bw()+

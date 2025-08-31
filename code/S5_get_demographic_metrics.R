@@ -195,33 +195,8 @@ check <-
   mutate(value = case_when(demo_var == "FirstStepAtt" & value > 5000 ~ NA, TRUE ~ value)) %>%
   mutate(value = case_when(demo_var == "L_max" & value < 80 ~ NA, TRUE ~ value))
 
-# save the compadre metrics
-write_csv(check, "results/all_COMPADRE_metrics.csv")
 
 ################################################################################
-
-# not sure if the below is necessary - we can probably get rid of this...
-
-# filter for the drag species
-drag <- check %>% filter(SpeciesAccepted %in% Drag_taxa_new) 
-
-# get a list of the matrices that would make the biggest difference to solve
-try <- drag %>%
-  group_by(demo_var, SpeciesAccepted) %>% 
-  mutate(all_count = n()) %>% 
-  mutate(na_count = sum(is.na(value))) %>% 
-  filter(na_count == all_count)
-
-# get a list of all the missing values with matrix IDs
-see <- drag %>%
-  group_by(demo_var, SpeciesAccepted) %>%
-  filter(is.na(value))
-# see how many matrices we need to check to resolve these issues
-length(unique(see$MatrixID))
-
-# save this list of matrices / missing values
-write_csv(see, "results/March_2025/matrices_no_values.csv")
-
 
 
 
