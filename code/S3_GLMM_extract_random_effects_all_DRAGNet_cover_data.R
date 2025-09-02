@@ -51,7 +51,7 @@ get_RE_taxon <- function(data, experiments) {
   )
   
   betareg_mod <- glmmTMB(
-    new_max_cover ~ trt * year_trt + (1|New_taxon) + + (1|site_block_taxon),
+    new_max_cover ~ trt * year_trt + (1|New_taxon) + (1|site_block_taxon),
     family = ordbeta(link = "logit"),
     data = data
   )

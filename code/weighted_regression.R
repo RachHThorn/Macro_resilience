@@ -34,7 +34,8 @@ demo <- read_csv("results/all_COMPADRE_metrics.csv") %>%
   mutate(Taxon_label = str_replace_all(Taxon, "_", " ")) %>%
   mutate(Taxon_label = paste0(Taxon_label, " n = ", Sample_size)) %>%
   mutate(New_demo_value = if_else(Demo_trait %in% needs_logging, log(Demo_value), Demo_value)) %>%
-  mutate(Log_flag = if_else(Demo_trait %in% needs_logging, "logged", "not_logged"))
+  mutate(Log_flag = if_else(Demo_trait %in% needs_logging, "logged", "not_logged")) %>%
+  rename(Demo_se = se, Demo_sd = s)
 
 # n shows us the number of matrices we are using for each data point
 demo %>% group_by(Taxon, Demo_trait) %>% count()
@@ -66,10 +67,10 @@ unique(taxa$Taxon) # 40 unique taxa here
 
 
 ################################################################################
-# OPTION 1: Easy linear models
+# OPTION 1: OLS regressions
 ################################################################################
 
-# quick and dirty linear regression using just the means of the demo metrics and REs
+# quick and dirty OLS linear regression using just the means of the demo metrics and REs
 
 # first simplify the demo data to just the mean values
 small_demo <- 
@@ -131,6 +132,7 @@ lm_results %>%
   geom_errorbar(aes(xmin = estimate - std.error, xmax = estimate + std.error), size = 0.3) +
   facet_grid(time_period ~ experiment)+
   geom_vline(xintercept = 0, colour = "red", linetype = "dashed")
+ggsave("figures/OLS_effects.jpeg", height = 5, width = 7)
 # so mainly no relationships / there are some values not overlapping zero
 # particularly Lambda
 
@@ -144,6 +146,7 @@ lm_results %>%
   geom_errorbar(aes(xmin = estimate - std.error, xmax = estimate + std.error), size = 0.3) +
   facet_grid(time_period ~ experiment)+
   geom_vline(xintercept = 0, colour = "red", linetype = "dashed")
+
 
 lm_results$p.value
 lm_results %>% filter(p.value < 0.1)
@@ -173,19 +176,76 @@ both %>%
   facet_grid(time_period ~ experiment)+
   
 # this is also very unconvincing
-
-
-
+  
 ################################################################################
 # OPTION 2: Weighted regression
 ################################################################################
 # weights as inverse variance
-names()
-df <- df %>%
-  mutate(weight = 1 / se^2)  # se = measurement standard error
+# only one variable has known errors
+# taxa and demo need binding
 
-fit <- lm(y ~ x, data = df, weights = weight)
+head(taxa)
+head(demo)
 
+both <- taxa %>% left_join(demo, by = "Taxon", relationship = "many-to-many")
+names(both)
+# important variables - Taxon, RE, RE_se, Demo_se, New_demo_value
+# If weights = importance/frequency: keep them as is - you don't need to transform them after weighting
+both <- both %>%
+  mutate(weight_RE = 1 / RE_se^2) %>%
+  mutate(weight_Demo = 1/ Demo_se^2) %>%
+  dplyr::select(Taxon, RE, New_demo_value, weight_RE, weight_Demo, 
+                Demo_trait, model, time_period, experiment)
+
+# nest this data frame
+nested_both <- both %>% group_by(model, time_period, experiment, Demo_trait) %>% nest()
+
+models <- 
+  nested_both %>%
+  mutate(data = map(data, ~ drop_na(.x, RE, New_demo_value, weight_RE, weight_Demo))) %>%
+  mutate(mod = map(data, ~ lm(RE ~ New_demo_value, data = .x, weights = .x$weight_Demo)))
+
+
+models <- nested_both %>%
+  mutate(
+    data = map(
+      data,
+      ~ .x %>%
+        drop_na(RE, New_demo_value, weight_RE, weight_Demo) %>%
+        filter(
+          !is.infinite(RE),
+          !is.infinite(New_demo_value),
+          !is.infinite(weight_RE),
+          !is.infinite(weight_Demo),
+          !is.nan(RE),
+          !is.nan(New_demo_value),
+          !is.nan(weight_RE),
+          !is.nan(weight_Demo)
+        )
+    ),
+    mod = map(
+      data,
+      ~ if (nrow(.x) > 1) {
+        lm(RE ~ New_demo_value, data = .x, weights = .x$weight_Demo)
+      } else {
+        NULL  # skip groups with too few rows
+      }
+    )
+  )
+
+
+lm_results <- models %>%
+  select(time_period, experiment, model, Demo_trait, results) %>%
+  unnest(results) %>%
+  filter(term == "New_demo_value")
+
+# visualise these model results (p values)
+lm_results %>% 
+  filter(model == "Ordbeta") %>%
+  ggplot(aes(p.value, Demo_trait)) + 
+  theme_bw() +
+  geom_point() + 
+  facet_grid(time_period ~ experiment)
 
 
 
@@ -193,7 +253,8 @@ fit <- lm(y ~ x, data = df, weights = weight)
 # OPTION 3: Bayesian regression
 ################################################################################
 
-# here we need a data frame with errors for both 
+# here we need a data frame with errors for both demo and taxa cover change
+
 
 
 
